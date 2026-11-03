@@ -1,0 +1,20 @@
+{
+    "serverName": "Mein ACC Server",
+    "password": "bitte-aendern",
+    "adminPassword": "bitte-auch-aendern",
+    "spectatorPassword": "",
+    "carGroup": "FreeForAll",
+    "trackMedalsRequirement": 0,
+    "safetyRatingRequirement": -1,
+    "racecraftRatingRequirement": -1,
+    "maxCarSlots": 10,
+    "isRaceLocked": 0,
+    "allowAutoDQ": 1,
+    "formationLapType": 3,
+    "shortFormationLap": 1,
+    "dumpLeaderboards": 1,
+    "dumpEntryList": 0,
+    "randomizeTrackWhenEmpty": 0,
+    "centralEntryListPath": "",
+    "configVersion": 1
+}
