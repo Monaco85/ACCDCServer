@@ -36,7 +36,7 @@ Fertiges Setup für einen **Assetto Corsa Competizione (ACC) Dedicated Server un
 
 ## Installation
 
-1. Repo klonen oder als ZIP herunterladen und entpacken, z. B. nach `C:\ACCDCServer`.
+1. Repo klonen oder als ZIP herunterladen und entpacken, z. B. nach `C:\ACCDCServer`. Beim ZIP von GitHub legt Windows oft zwei gleichnamige Ordner ineinander an. Richtig ist der Ordner, in dem `install.ps1` direkt liegt.
 2. **Konfiguration anpassen** (vor der Installation, sonst danach `install.ps1` erneut ausführen):
    - `cfg\settings.json`: `serverName`, `password` (leer = öffentlich), `adminPassword`
    - `cfg\event.json`: `track` und `sessions`
@@ -146,6 +146,7 @@ Den Server vorher beenden, sonst lässt sich `accServer.exe` nicht überschreibe
 
 | Problem | Ursache / Lösung |
 |---|---|
+| "Das Argument install.ps1 für den -File-Parameter ist nicht vorhanden" | PowerShell steht im falschen Ordner, meist im äußeren von zwei gleichnamigen ZIP-Ordnern. Mit `dir` prüfen, in den Ordner mit `install.ps1` wechseln und `.\install.ps1` angeben |
 | "Keine ACC-Installation mit accServer.exe gefunden" | ACC ist auf diesem PC nicht installiert. Über Steam installieren oder Variante B nutzen |
 | SteamCMD lädt nichts, "No subscription" | Das Steam-Konto besitzt ACC nicht |
 | "Syntaxfehler in cfg\\..." | Komma oder Anführungszeichen in der genannten Datei prüfen. Die Meldung nennt Zeile und Position |
