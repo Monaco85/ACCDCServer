@@ -1,0 +1,1835 @@
+diff -ruN src.orig/components/end.vue src/components/end.vue
+--- a/public/src/components/end.vue	2026-11-18 07:05:43.373503106 +0000
++++ b/public/src/components/end.vue	2026-11-18 07:09:21.369800559 +0000
+@@ -1,9 +1,9 @@
+-<template>
+-    <div class="end">
+-        <a href="https://github.com/assetto-corsa-web/accweb" target="_blank">accweb Version %VERSION% (%COMMIT%)</a>
+-    </div>
+-</template>
+-
+-<script>
+-export default {}
+-</script>
++<template>
++    <div class="end">
++        <a href="https://github.com/assetto-corsa-web/accweb" target="_blank">accweb 1.27.0 &middot; ACCDCServer theme</a>
++    </div>
++</template>
++
++<script>
++export default {}
++</script>
+diff -ruN src.orig/components/layout.vue src/components/layout.vue
+--- a/public/src/components/layout.vue	2026-11-18 07:05:43.373561517 +0000
++++ b/public/src/components/layout.vue	2026-11-18 07:08:11.659704367 +0000
+@@ -1,6 +1,11 @@
+ <template>
+     <div v-bind:class="{main: true, 'main-small': small}">
+-        <router-link to="/"><img src="static/logo.png" alt="" class="logo" /></router-link>
++        <div class="topbar">
++            <router-link to="/" class="brand">
++                <span class="brand-mark"><span>ACC</span></span>
++                <span class="brand-text"><strong>Race Control</strong><small>Dedicated Server</small></span>
++            </router-link>
++        </div>
+         <slot></slot>
+         <end></end>
+         <error></error>
+diff -ruN src.orig/components/server.vue src/components/server.vue
+--- a/public/src/components/server.vue	2026-11-18 07:05:43.373613651 +0000
++++ b/public/src/components/server.vue	2026-11-18 07:08:11.705490031 +0000
+@@ -1,168 +1,180 @@
+-<template>
+-    <div class="server" v-bind:class="{running: formattedServerClientCount > 0}">
+-        <div class="content">
+-            <div class="name">
+-                {{server.name}}
+-                <div class="actions">
+-                    <span v-if="is_ro">
+-                        <i class="fas fa-tv" v-if="server.pid" v-on:click="live" :title="$t('view_live')"></i>
+-                    </span>
+-                    <span v-if="!ro">
+-                        <i class="fas fa-cog" v-on:click="edit" :title="$t('change_config')"></i>
+-                        <i class="fas fa-terminal" v-on:click="logs" :title="$t('view_logs')"></i>
+-                        <i class="fas fa-copy" v-on:click="copyConfig" v-if="is_admin" :title="$t('copy_config')"></i>
+-                        <i class="fas fa-file-download" v-on:click="exportConfig" :title="$t('export_config')"></i>
+-                        <i class="fas fa-trash" v-on:click="deleteServer" v-if="is_admin" :title="$t('delete_server')"></i>
+-                    </span>
+-                </div>
+-            </div>
+-            <div class="info">
+-                <span v-if="server.pid"><b>PID:</b> {{server.pid}} &nbsp;&bull;&nbsp;</span>
+-                <b>UDP:</b> {{server.udpPort}} &nbsp;&bull;&nbsp;
+-                <b>TCP:</b> {{server.tcpPort}} &nbsp;&bull;&nbsp;
+-                <b>{{$t("track")}}:</b> {{server.track}}
+-                <span v-if="!ro">&nbsp;&bull;&nbsp; <b>{{$t("configuration_directory")}}:</b> {{server.id}}</span>
+-            </div>
+-            <div class="info state" v-if="server.pid">
+-                <b>{{$t("state")}}: </b>{{$t(server.serverState)}} &nbsp;&bull;&nbsp;
+-                <b>{{$t("number_of_drivers")}}: </b>{{formattedServerClientCount}} &nbsp;&bull;&nbsp;
+-                <b>{{$t("session")}}: </b>
+-                <span v-if="server.sessionType">{{server.sessionType}} ({{server.sessionPhase}}) - {{server.sessionRemaining}} min(s)</span>
+-                <span v-else>{{$t('not_detected')}}</span>
+-            </div>
+-        </div>
+-        <button class="start" v-on:click="start" v-if="is_mod && !ro && !server.pid">{{$t("start_server")}}</button>
+-        <button class="stop" v-on:click="stop" v-if="is_mod && !ro && server.pid">{{$t("stop_server")}}</button>
+-        <div class="online" v-if="ro && server.pid">{{$t("running")}}</div>
+-        <div class="offline" v-if="ro && !server.pid">{{$t("offline")}}</div>
+-    </div>
+-</template>
+-
+-<style>
+-.content {
+-    width: 100%;
+-}
+-
+-.state {
+-    margin-top: 10px;
+-}
+-
+-.state b {
+-    color: #505050;
+-}
+-
+-.running {
+-    background-color: #1d2331;
+-}
+-
+-.actions {
+-    display: inline;
+-    float: right;
+-    margin-right: 30px;
+-}
+-</style>
+-
+-<script>
+-import axios from "axios";
+-
+-export default {
+-    props: ["server", "ro"],
+-    computed: {
+-        formattedServerClientCount: function () {
+-            return this.server.serverState === 'not_registered' ? '-' : this.server.nrClients;
+-        }
+-    },
+-    methods: {
+-        edit() {
+-            this.$router.push(`/server?id=${this.server.id}`);
+-        },
+-        logs() {
+-            this.$router.push(`/logs?id=${this.server.id}`);
+-        },
+-        live() {
+-            this.$router.push(`/live?id=${this.server.id}`);
+-        },
+-        copyConfig() {
+-            axios.post(`/api/instance/${this.server.id}/clone`)
+-            .then(() => {
+-                this.$emit("copied");
+-            })
+-            .catch(e => {
+-                this.$store.commit("toast", this.$t("copy_server_error"))
+-            });
+-        },
+-        exportConfig() {
+-            let link = document.createElement("a");
+-            link.setAttribute("type", "hidden");
+-            link.href = `/api/instance/${this.server.id}/export?token=${this.$store.state.auth.token}`;
+-            document.body.appendChild(link);
+-            link.click();
+-            link.remove();
+-        },
+-        deleteServer() {
+-            if (!window.confirm(this.$t("confirm_delete_server"))) {
+-                return;
+-            }
+-
+-            axios.delete(`/api/instance/${this.server.id}`)
+-            .then(() => {
+-                this.$emit("deleted");
+-            })
+-            .catch(e => {
+-                this.$store.commit("toast", this.$t("delete_server_error"))
+-            });
+-        },
+-        start() {
+-            axios.post(`/api/instance/${this.server.id}/start`)
+-            .then(() => {
+-                this.$emit("started");
+-            })
+-            .catch(e => {
+-                this.$store.commit("toast", this.$t("start_server_error", {error: e.response.data.error}))
+-            });
+-        },
+-        stop() {
+-            axios.post(`/api/instance/${this.server.id}/stop`)
+-            .then(() => {
+-                this.$emit("stopped");
+-            })
+-            .catch(e => {
+-                this.$store.commit("toast", this.$t("stop_server_error", {error: e.response.data.error}))
+-            });
+-        }
+-    }
+-}
+-</script>
+-
+-<i18n>
+-{
+-    "en": {
+-        "start_server": "Start",
+-        "stop_server": "Stop",
+-        "change_config": "Change config",
+-        "view_logs": "View logs",
+-        "view_live": "View live",
+-        "copy_config": "Copy config",
+-        "export_config": "Export config",
+-        "delete_server": "Delete server",
+-        "confirm_delete_server": "Do you really want to delete this server?",
+-        "copy_server_error": "Error copying server configuration.",
+-        "delete_server_error": "Error deleting server configuration.",
+-        "start_server_error": "Error starting server, please check the logs. ERROR: {error}",
+-        "stop_server_error": "Error stopping server. ERROR: {error}",
+-        "track": "Track",
+-        "configuration_directory": "Config dir",
+-        "running": "Running",
+-
+-        "state": "State",
+-        "number_of_drivers": "Drivers",
+-        "session": "Session",
+-        "not_detected": "Not detected",
+-
+-        "offline": "Offline",
+-        "starting": "Starting",
+-        "not_registered": "Waiting for events",
+-        "online": "Online"
+-    }
+-}
+-</i18n>
++<template>
++    <div class="server" v-bind:class="{running: formattedServerClientCount > 0, 'is-online': !!server.pid}">
++        <div class="content">
++            <div class="name">
++                {{server.name}}
++                <span class="status-pill" v-bind:class="{online: !!server.pid}"><span class="dot"></span>{{server.pid ? $t(server.serverState) : $t("offline")}}</span>
++                <div class="actions">
++                    <span v-if="is_ro">
++                        <i class="fas fa-tv" v-if="server.pid" v-on:click="live" :title="$t('view_live')"></i>
++                    </span>
++                    <span v-if="!ro">
++                        <i class="fas fa-cog" v-on:click="edit" :title="$t('change_config')"></i>
++                        <i class="fas fa-terminal" v-on:click="logs" :title="$t('view_logs')"></i>
++                        <i class="fas fa-copy" v-on:click="copyConfig" v-if="is_admin" :title="$t('copy_config')"></i>
++                        <i class="fas fa-file-download" v-on:click="exportConfig" :title="$t('export_config')"></i>
++                        <i class="fas fa-trash" v-on:click="deleteServer" v-if="is_admin" :title="$t('delete_server')"></i>
++                    </span>
++                </div>
++            </div>
++            <div class="chips">
++                <span class="chip"><i class="fas fa-flag-checkered"></i><b>{{server.track}}</b></span>
++                <span class="chip" v-if="server.pid"><i class="fas fa-users"></i><b>{{formattedServerClientCount}}</b> {{$t("number_of_drivers")}}</span>
++                <span class="chip" v-if="server.pid && server.sessionType"><i class="fas fa-stopwatch"></i><b>{{server.sessionType}}</b> {{server.sessionPhase}} &middot; {{server.sessionRemaining}} min</span>
++            </div>
++            <div class="info">
++                <b>UDP</b> {{server.udpPort}} &nbsp;&bull;&nbsp;
++                <b>TCP</b> {{server.tcpPort}}
++                <span v-if="server.pid">&nbsp;&bull;&nbsp; <b>PID</b> {{server.pid}}</span>
++                <span v-if="!ro">&nbsp;&bull;&nbsp; <b>{{$t("configuration_directory")}}</b> {{server.id}}</span>
++            </div>
++        </div>
++        <div class="server-buttons" v-if="is_mod && !ro">
++            <button class="start" v-on:click="start" v-if="!server.pid" :disabled="busy"><i class="fas fa-play"></i> {{$t("start_server")}}</button>
++            <button class="restart" v-on:click="restart" v-if="server.pid" :disabled="busy"><i class="fas" v-bind:class="busy ? 'fa-spinner fa-spin' : 'fa-redo'"></i> {{$t("restart_server")}}</button>
++            <button class="stop" v-on:click="stop" v-if="server.pid" :disabled="busy"><i class="fas fa-stop"></i> {{$t("stop_server")}}</button>
++        </div>
++        <div class="online" v-if="ro && server.pid">{{$t("running")}}</div>
++        <div class="offline" v-if="ro && !server.pid">{{$t("offline")}}</div>
++    </div>
++</template>
++
++<style>
++.content {
++    width: 100%;
++}
++
++.actions {
++    display: inline-flex;
++    margin-left: auto;
++}
++</style>
++
++<script>
++import axios from "axios";
++import {restartServer, errorText} from "../util/restart.js";
++
++export default {
++    props: ["server", "ro"],
++    data() {
++        return {busy: false};
++    },
++    computed: {
++        formattedServerClientCount: function () {
++            return this.server.serverState === 'not_registered' ? '-' : this.server.nrClients;
++        }
++    },
++    methods: {
++        edit() {
++            this.$router.push(`/server?id=${this.server.id}`);
++        },
++        logs() {
++            this.$router.push(`/logs?id=${this.server.id}`);
++        },
++        live() {
++            this.$router.push(`/live?id=${this.server.id}`);
++        },
++        copyConfig() {
++            axios.post(`/api/instance/${this.server.id}/clone`)
++            .then(() => {
++                this.$emit("copied");
++            })
++            .catch(e => {
++                this.$store.commit("toast", this.$t("copy_server_error"))
++            });
++        },
++        exportConfig() {
++            let link = document.createElement("a");
++            link.setAttribute("type", "hidden");
++            link.href = `/api/instance/${this.server.id}/export?token=${this.$store.state.auth.token}`;
++            document.body.appendChild(link);
++            link.click();
++            link.remove();
++        },
++        deleteServer() {
++            if (!window.confirm(this.$t("confirm_delete_server"))) {
++                return;
++            }
++
++            axios.delete(`/api/instance/${this.server.id}`)
++            .then(() => {
++                this.$emit("deleted");
++            })
++            .catch(e => {
++                this.$store.commit("toast", this.$t("delete_server_error"))
++            });
++        },
++        start() {
++            axios.post(`/api/instance/${this.server.id}/start`)
++            .then(() => {
++                this.$emit("started");
++            })
++            .catch(e => {
++                this.$store.commit("toast", this.$t("start_server_error", {error: e.response.data.error}))
++            });
++        },
++        restart() {
++            if (!window.confirm(this.$t("confirm_restart"))) {
++                return;
++            }
++
++            this.busy = true;
++            restartServer(this.server.id)
++            .then(() => {
++                this.busy = false;
++                this.$emit("started");
++            })
++            .catch(e => {
++                this.busy = false;
++                this.$store.commit("toast", this.$t("restart_server_error", {error: errorText(e)}));
++                this.$emit("stopped");
++            });
++        },
++        stop() {
++            axios.post(`/api/instance/${this.server.id}/stop`)
++            .then(() => {
++                this.$emit("stopped");
++            })
++            .catch(e => {
++                this.$store.commit("toast", this.$t("stop_server_error", {error: e.response.data.error}))
++            });
++        }
++    }
++}
++</script>
++
++<i18n>
++{
++    "en": {
++        "start_server": "Start",
++        "stop_server": "Stop",
++        "restart_server": "Restart",
++        "confirm_restart": "Restart the server now? Everybody on it gets disconnected and the race weekend starts over.",
++        "restart_server_error": "Error restarting server. ERROR: {error}",
++        "change_config": "Change config",
++        "view_logs": "View logs",
++        "view_live": "View live",
++        "copy_config": "Copy config",
++        "export_config": "Export config",
++        "delete_server": "Delete server",
++        "confirm_delete_server": "Do you really want to delete this server?",
++        "copy_server_error": "Error copying server configuration.",
++        "delete_server_error": "Error deleting server configuration.",
++        "start_server_error": "Error starting server, please check the logs. ERROR: {error}",
++        "stop_server_error": "Error stopping server. ERROR: {error}",
++        "track": "Track",
++        "configuration_directory": "Config dir",
++        "running": "Running",
++
++        "state": "State",
++        "number_of_drivers": "Drivers",
++        "session": "Session",
++        "not_detected": "Not detected",
++
++        "offline": "Offline",
++        "starting": "Starting",
++        "not_registered": "Waiting for events",
++        "online": "Online"
++    }
++}
++</i18n>
+diff -ruN src.orig/main.scss src/main.scss
+--- a/public/src/main.scss	2026-11-18 07:05:43.373823906 +0000
++++ b/public/src/main.scss	2026-11-18 07:09:50.710482229 +0000
+@@ -1,356 +1,719 @@
+-$dark_gray: #171a21;
+-$gray: #c7d5e0;
+-$light_gray: #f2f2f2;
+-$dark_red: #7e1313;
+-$red: #d85d5d;
+-$green: #a4d007;
+-$dark_green: #4c6b22;
+-$dark_blue: #1b2838;
+-$medium_blue: #233D51;
+-$light_blue: #67c1f5;
+-$background: $dark_blue;
+-
+-$font_size: 14px;
+-$font_size_small: 12px;
+-$font_family: sans-serif;
+-$font_color: $gray;
+-
+-html,
+-body {
+-	height: 100%;
+-	margin: 0;
+-	padding: 0;
+-	font-size: $font_size;
+-	font-family: $font_family;
+-	color: $font_color;
+-	line-height: 1;
+-	background: $background;
+-}
+-
+-html {
+-	margin-right: calc(-100vw + 100%);
+-	/* Fix for scroll-bar jump */
+-}
+-
+-body {
+-	overflow-x: hidden;
+-}
+-
+-.logo {
+-	float: left;
+-	margin: 0 6px 0 0;
+-	max-height: 40px;
+-}
+-
+-.main {
+-	max-width: 900px;
+-	margin: 40px auto;
+-	padding: 20px;
+-	background: $dark-gray;
+-	border: 1px solid $medium_blue;
+-	border-radius: 8px;
+-
+-	.title {
+-		display: flex;
+-		justify-content: space-between;
+-		margin: 0 0 20px 0;
+-
+-		.menu {
+-			display: flex;
+-			justify-content: center;
+-			align-items: center;
+-			height: 40px;
+-
+-			button {
+-				margin: 0 2px;
+-			}
+-		}
+-	}
+-
+-	.server {
+-		display: flex;
+-		justify-content: space-between;
+-		margin: 10px 0;
+-		padding: 10px;
+-		border: 1px solid $gray;
+-		border-radius: 1px;
+-
+-		.name {
+-			font-size: medium;
+-			font-weight: bold;
+-			margin: 0 0 15px 0;
+-
+-			.fas {
+-				margin: 0 4px;
+-				cursor: pointer;
+-			}
+-		}
+-
+-		.info {
+-			color: $gray;
+-		}
+-
+-		.start {
+-			background: $dark-green;
+-			color: $green;
+-		}
+-
+-		.stop {
+-			background: $dark-red;
+-			color: $red;
+-		}
+-
+-		.online {
+-			display: flex;
+-			justify-content: center;
+-			align-items: center;
+-			padding: 6px 10px;
+-			background: $dark-green;
+-			color: $green;
+-		}
+-
+-		.offline {
+-			display: flex;
+-			justify-content: center;
+-			align-items: center;
+-			padding: 6px 10px;
+-			background: $dark-red;
+-			color: $light_gray;
+-		}
+-	}
+-}
+-
+-.main-small {
+-	max-width: 450px;
+-}
+-
+-.end {
+-	font-size: $font_size_small;
+-	text-align: center;
+-	margin: 20px 0 0 0;
+-}
+-
+-.tabs {
+-	display: flex;
+-	margin: 0 0 20px 0;
+-	border-style: solid;
+-	border-color: $dark_green;
+-	border-width: 0 0 1px 0;
+-
+-	.tab {
+-		padding: 10px 12px;
+-		margin: 0 2px 0 0;
+-		border-radius: 2px 2px 0 0;
+-		cursor: pointer;
+-	}
+-
+-	.tab-active {
+-		background: $dark_green;
+-		color: $green;
+-	}
+-}
+-
+-.collapsible {
+-	margin: 10px 0;
+-
+-	.collapsible-title {
+-		display: flex;
+-		justify-content: space-between;
+-		border-style: solid;
+-		border-color: $medium_blue;
+-		border-width: 0 0 1px 0;
+-		padding: 10px 6px;
+-
+-		.collapse-icon {
+-			cursor: pointer;
+-		}
+-	}
+-
+-	.collapsible-content {
+-		padding: 20px 6px 6px 6px;
+-	}
+-}
+-
+-.box {
+-	border: 1px solid $gray;
+-	border-radius: 1px;
+-	padding: 20px;
+-	margin: 10px 0;
+-
+-	&.condensed {
+-		padding: 5px 20px;
+-	}
+-}
+-
+-
+-.error-toast {
+-	position: absolute;
+-	left: 50%;
+-	top: 20px;
+-
+-	.error-content {
+-		position: relative;
+-		left: -50%;
+-		border-radius: 1px;
+-		background: $red;
+-		color: $dark_gray;
+-		padding: 10px;
+-	}
+-}
+-
+-.success-toast {
+-	position: absolute;
+-	left: 50%;
+-	top: 20px;
+-
+-	.success-content {
+-		position: relative;
+-		left: -50%;
+-		border-radius: 1px;
+-		background: $green;
+-		color: $dark_gray;
+-		padding: 10px;
+-	}
+-}
+-
+-h1 {
+-	display: flex;
+-	justify-content: center;
+-	align-items: center;
+-	height: 40px;
+-	font-size: 20px;
+-	font-weight: normal;
+-	margin: 0 0 0 6px;
+-}
+-
+-button,
+-input[type~="submit"] {
+-	width: auto;
+-	border-width: 0;
+-	font-size: $font_size;
+-	font-family: $font_family;
+-	background: $medium_blue;
+-	color: $light_blue;
+-	border-radius: 2px;
+-	padding: 8px 12px;
+-	margin: 4px 0;
+-	cursor: pointer;
+-
+-	.fas {
+-		margin-right: 6px;
+-	}
+-}
+-
+-input,
+-select,
+-textarea {
+-	width: 100%;
+-	box-sizing: border-box;
+-	font-size: $font_size;
+-	font-family: $font_family;
+-	background: $dark_blue;
+-	color: $light_gray;
+-	border: 1px solid $medium_blue;
+-	border-radius: 1px;
+-	padding: 6px;
+-	margin: 4px 0;
+-}
+-
+-input[type~="checkbox"] {
+-	width: auto;
+-	margin: 0 8px 0 0;
+-}
+-
+-input[disabled="disabled"] {
+-	background-color: $dark_gray;
+-	border-color: $gray;
+-}
+-
+-.checkbox {
+-	display: flex;
+-	justify-content: center;
+-	align-items: center;
+-	height: 30px;
+-
+-	label {
+-		font-size: $font_size;
+-	}
+-}
+-
+-select {
+-	width: auto;
+-	display: block;
+-}
+-
+-label {
+-	width: 100%;
+-	box-sizing: border-box;
+-	font-size: $font_size_small;
+-}
+-
+-.primary {
+-	background: $dark_green !important;
+-	color: $green !important;
+-}
+-
+-.danger {
+-	background: $dark_red !important;
+-	color: $gray !important;
+-}
+-
+-.disabled {
+-	background: $gray !important;
+-	color: $dark_gray !important;
+-}
+-
+-.error {
+-	color: $red;
+-	width: 100%;
+-	box-sizing: border-box;
+-	font-size: $font_size_small;
+-}
+-
+-a {
+-	color: $light_blue;
+-	text-decoration: none;
+-}
+-
+-.button-row>button {
+-	margin-right: 8px;
+-}
+-
+-.server-settings-container {
+-	display: grid;
+-	grid-gap: 2.0rem;
+-	margin-bottom: 1.0rem;
+-}
+-
+-.server-settings-group {
+-	margin: 1.0rem 0;
+-}
+-
+-.server-settings-container.two-columns {
+-	grid-template-columns: 1fr 1fr;
+-}
+-
+-.server-settings-container.three-columns {
+-	grid-template-columns: 1fr 1fr 1fr;
+-}
+-
+-.server-settings-container.four-columns {
+-	grid-template-columns: 1fr 1fr 1fr 1fr;
+-}
+-
+-.server-settings-container.one-two-columns {
+-	grid-template-columns: 1fr 2fr;
+-}
+-
+-.server-settings-container.one-three-columns {
+-	grid-template-columns: 1fr 3fr;
+-}
+-
+-@media (max-device-width: 700px) {
+-	.main {
+-		margin: 0 auto;
+-	}
+-}
+\ No newline at end of file
++// ACCDCServer race control theme for accweb.
++// Same class names as upstream accweb, only the look changes.
++
++$bg: #0a0c10;
++$panel: #12161d;
++$panel-2: #181d26;
++$line: #262d39;
++$line-strong: #343d4d;
++$text: #e6e9ef;
++$muted: #8b95a7;
++$accent: #e10600;
++$accent-2: #ff5a1f;
++$green: #22c55e;
++$green-dark: #0f3d22;
++$red: #f04438;
++$red-dark: #3d1214;
++$amber: #f5b301;
++
++$font_size: 14px;
++$font_size_small: 12px;
++$font_family: "Titillium Web", "Segoe UI", Roboto, sans-serif;
++$mono: "JetBrains Mono", Consolas, "Courier New", monospace;
++$radius: 10px;
++
++html,
++body {
++	min-height: 100%;
++	margin: 0;
++	padding: 0;
++	font-size: $font_size;
++	font-family: $font_family;
++	color: $text;
++	line-height: 1.35;
++	background-color: $bg;
++}
++
++body {
++	min-height: 100vh;
++	display: flow-root;
++	overflow-x: hidden;
++	background-image:
++		radial-gradient(ellipse 80% 40% at 50% -10%, rgba($accent, 0.22), transparent 70%),
++		repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 6px);
++	background-attachment: fixed;
++}
++
++html {
++	margin-right: calc(-100vw + 100%);
++	/* Fix for scroll-bar jump */
++}
++
++* {
++	scrollbar-color: $line-strong $bg;
++}
++
++// Header with brand and checkered strip
++.topbar {
++	position: relative;
++	display: flex;
++	align-items: center;
++	justify-content: space-between;
++	margin: -24px -24px 24px -24px;
++	padding: 18px 24px 16px 24px;
++	border-bottom: 1px solid $line;
++	background: linear-gradient(90deg, rgba($accent, 0.14), transparent 60%);
++	border-radius: $radius $radius 0 0;
++
++	&::before {
++		content: "";
++		position: absolute;
++		left: 0;
++		right: 0;
++		top: 0;
++		height: 6px;
++		border-radius: $radius $radius 0 0;
++		background:
++			conic-gradient(#fff 25%, #111 0 50%, #fff 0 75%, #111 0) 0 0 / 12px 12px;
++		opacity: 0.85;
++	}
++}
++
++.brand {
++	display: flex;
++	align-items: center;
++	gap: 12px;
++	color: $text;
++
++	.brand-mark {
++		display: inline-flex;
++		align-items: center;
++		justify-content: center;
++		padding: 4px 12px;
++		font-weight: 900;
++		font-style: italic;
++		font-size: 20px;
++		letter-spacing: 1px;
++		color: #fff;
++		background: linear-gradient(135deg, $accent, $accent-2);
++		transform: skewX(-12deg);
++		border-radius: 4px;
++		box-shadow: 0 6px 18px rgba($accent, 0.35);
++
++		span {
++			transform: skewX(12deg);
++		}
++	}
++
++	.brand-text {
++		display: flex;
++		flex-direction: column;
++		line-height: 1.1;
++
++		strong {
++			font-size: 17px;
++			font-weight: 700;
++			letter-spacing: 0.5px;
++			text-transform: uppercase;
++		}
++
++		small {
++			font-size: 11px;
++			color: $muted;
++			letter-spacing: 2px;
++			text-transform: uppercase;
++		}
++	}
++}
++
++.main {
++	max-width: 1000px;
++	margin: 40px auto;
++	padding: 24px;
++	background: rgba($panel, 0.92);
++	border: 1px solid $line;
++	border-radius: $radius;
++	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
++	backdrop-filter: blur(6px);
++
++	.title {
++		display: flex;
++		flex-wrap: wrap;
++		gap: 10px;
++		justify-content: space-between;
++		align-items: center;
++		margin: 0 0 20px 0;
++
++		.menu {
++			display: flex;
++			flex-wrap: wrap;
++			gap: 6px;
++			justify-content: flex-end;
++			align-items: center;
++
++			button,
++			select {
++				margin: 0;
++			}
++		}
++	}
++
++	// Server card on the overview
++	.server {
++		position: relative;
++		display: flex;
++		gap: 16px;
++		justify-content: space-between;
++		align-items: center;
++		margin: 12px 0;
++		padding: 18px 18px 18px 22px;
++		background: linear-gradient(180deg, $panel-2, $panel);
++		border: 1px solid $line;
++		border-radius: $radius;
++		overflow: hidden;
++		transition: border-color 0.2s, transform 0.2s;
++
++		&::before {
++			content: "";
++			position: absolute;
++			left: 0;
++			top: 0;
++			bottom: 0;
++			width: 4px;
++			background: $line-strong;
++		}
++
++		&.is-online::before {
++			background: $green;
++			box-shadow: 0 0 16px $green;
++		}
++
++		&:hover {
++			border-color: $line-strong;
++			transform: translateY(-1px);
++		}
++
++		.name {
++			display: flex;
++			flex-wrap: wrap;
++			align-items: center;
++			gap: 10px;
++			font-size: 18px;
++			font-weight: 700;
++			margin: 0 0 10px 0;
++
++			.fas {
++				margin: 0 4px;
++				cursor: pointer;
++				color: $muted;
++				transition: color 0.15s;
++
++				&:hover {
++					color: $text;
++				}
++			}
++		}
++
++		.info {
++			color: $muted;
++			font-size: 13px;
++
++			b {
++				color: $text;
++				font-weight: 600;
++			}
++		}
++
++		.chips {
++			display: flex;
++			flex-wrap: wrap;
++			gap: 6px;
++			margin: 0 0 6px 0;
++		}
++
++		.chip {
++			display: inline-flex;
++			align-items: center;
++			gap: 6px;
++			padding: 3px 9px;
++			font-size: 12px;
++			color: $muted;
++			background: rgba(255, 255, 255, 0.04);
++			border: 1px solid $line;
++			border-radius: 999px;
++
++			b {
++				color: $text;
++				font-weight: 600;
++			}
++
++			.fas {
++				margin: 0;
++				font-size: 11px;
++				cursor: default;
++			}
++		}
++
++		.server-buttons {
++			display: flex;
++			flex-direction: column;
++			gap: 6px;
++			min-width: 120px;
++
++			button {
++				margin: 0;
++				justify-content: center;
++			}
++		}
++
++		.start {
++			background: $green-dark;
++			color: $green;
++			border-color: rgba($green, 0.35);
++		}
++
++		.stop {
++			background: $red-dark;
++			color: $red;
++			border-color: rgba($red, 0.35);
++		}
++
++		.restart {
++			background: rgba($amber, 0.1);
++			color: $amber;
++			border-color: rgba($amber, 0.35);
++		}
++
++		.online,
++		.offline {
++			display: flex;
++			justify-content: center;
++			align-items: center;
++			padding: 6px 12px;
++			border-radius: 999px;
++			font-weight: 600;
++		}
++
++		.online {
++			background: $green-dark;
++			color: $green;
++		}
++
++		.offline {
++			background: $red-dark;
++			color: $red;
++		}
++	}
++}
++
++// Status pill with pulsing dot
++.status-pill {
++	display: inline-flex;
++	align-items: center;
++	gap: 7px;
++	padding: 3px 10px;
++	font-size: 11px;
++	font-weight: 700;
++	letter-spacing: 1px;
++	text-transform: uppercase;
++	border-radius: 999px;
++	color: $muted;
++	background: rgba(255, 255, 255, 0.05);
++	border: 1px solid $line;
++
++	.dot {
++		width: 8px;
++		height: 8px;
++		border-radius: 50%;
++		background: $muted;
++	}
++
++	&.online {
++		color: $green;
++		background: rgba($green, 0.1);
++		border-color: rgba($green, 0.35);
++
++		.dot {
++			background: $green;
++			animation: pulse 1.6s infinite;
++		}
++	}
++}
++
++@keyframes pulse {
++	0% {
++		box-shadow: 0 0 0 0 rgba($green, 0.7);
++	}
++
++	70% {
++		box-shadow: 0 0 0 8px rgba($green, 0);
++	}
++
++	100% {
++		box-shadow: 0 0 0 0 rgba($green, 0);
++	}
++}
++
++.main-small {
++	max-width: 440px;
++	margin-top: 12vh;
++}
++
++.end {
++	font-size: $font_size_small;
++	text-align: center;
++	margin: 28px 0 0 0;
++	opacity: 0.6;
++
++	a {
++		color: $muted;
++	}
++}
++
++.tabs {
++	display: flex;
++	gap: 4px;
++	margin: 0 0 20px 0;
++	border-bottom: 1px solid $line;
++
++	.tab {
++		padding: 10px 14px;
++		color: $muted;
++		font-weight: 600;
++		border-bottom: 2px solid transparent;
++		margin-bottom: -1px;
++		cursor: pointer;
++		transition: color 0.15s;
++
++		&:hover {
++			color: $text;
++		}
++	}
++
++	.tab-active {
++		color: $text;
++		border-bottom-color: $accent;
++	}
++}
++
++.collapsible {
++	margin: 10px 0;
++	background: $panel-2;
++	border: 1px solid $line;
++	border-radius: $radius;
++
++	.collapsible-title {
++		display: flex;
++		justify-content: space-between;
++		align-items: center;
++		padding: 13px 16px;
++		font-weight: 700;
++		letter-spacing: 0.3px;
++		cursor: pointer;
++		user-select: none;
++
++		&:hover {
++			color: #fff;
++		}
++
++		.collapse-icon {
++			cursor: pointer;
++			color: $muted;
++		}
++	}
++
++	.collapsible-content {
++		padding: 16px;
++		border-top: 1px solid $line;
++	}
++}
++
++.box {
++	background: $panel-2;
++	border: 1px solid $line;
++	border-radius: $radius;
++	padding: 20px;
++	margin: 10px 0;
++
++	&.condensed {
++		padding: 6px 20px;
++	}
++}
++
++.error-toast,
++.success-toast {
++	position: fixed;
++	left: 50%;
++	top: 20px;
++	z-index: 100;
++
++	.error-content,
++	.success-content {
++		position: relative;
++		left: -50%;
++		border-radius: 8px;
++		padding: 12px 16px;
++		font-weight: 600;
++		box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
++	}
++
++	.error-content {
++		background: $red;
++		color: #fff;
++	}
++
++	.success-content {
++		background: $green;
++		color: #04140a;
++	}
++}
++
++h1 {
++	display: flex;
++	align-items: center;
++	min-height: 40px;
++	font-size: 24px;
++	font-weight: 700;
++	letter-spacing: 0.3px;
++	margin: 0;
++}
++
++button,
++input[type~="submit"] {
++	display: inline-flex;
++	align-items: center;
++	gap: 7px;
++	width: auto;
++	font-size: 13px;
++	font-weight: 600;
++	font-family: $font_family;
++	letter-spacing: 0.3px;
++	background: $panel-2;
++	color: $text;
++	border: 1px solid $line-strong;
++	border-radius: 7px;
++	padding: 8px 14px;
++	margin: 4px 0;
++	cursor: pointer;
++	transition: filter 0.15s, border-color 0.15s, transform 0.05s;
++
++	&:hover {
++		filter: brightness(1.18);
++		border-color: $muted;
++	}
++
++	&:active {
++		transform: translateY(1px);
++	}
++
++	.fas {
++		margin: 0;
++	}
++}
++
++input,
++select,
++textarea {
++	width: 100%;
++	box-sizing: border-box;
++	font-size: $font_size;
++	font-family: $font_family;
++	background: $bg;
++	color: $text;
++	border: 1px solid $line-strong;
++	border-radius: 7px;
++	padding: 8px 10px;
++	margin: 5px 0;
++	transition: border-color 0.15s, box-shadow 0.15s;
++
++	&:focus {
++		outline: none;
++		border-color: $accent-2;
++		box-shadow: 0 0 0 3px rgba($accent, 0.25);
++	}
++}
++
++textarea,
++pre {
++	font-family: $mono;
++	font-size: 12px;
++}
++
++input[type~="checkbox"] {
++	width: 16px;
++	height: 16px;
++	margin: 0 8px 0 0;
++	accent-color: $accent;
++	box-shadow: none;
++}
++
++input[disabled="disabled"],
++input:disabled {
++	opacity: 0.55;
++}
++
++.checkbox {
++	display: flex;
++	align-items: center;
++	height: 30px;
++
++	label {
++		display: flex;
++		align-items: center;
++		font-size: $font_size;
++	}
++}
++
++select {
++	width: auto;
++	display: block;
++}
++
++label {
++	display: block;
++	width: 100%;
++	box-sizing: border-box;
++	font-size: $font_size_small;
++	font-weight: 600;
++	color: $muted;
++	letter-spacing: 0.3px;
++}
++
++.primary {
++	background: linear-gradient(135deg, $accent, $accent-2) !important;
++	color: #fff !important;
++	border-color: transparent !important;
++	box-shadow: 0 6px 18px rgba($accent, 0.3);
++}
++
++.danger {
++	background: $red-dark !important;
++	color: $red !important;
++	border-color: rgba($red, 0.35) !important;
++}
++
++.disabled {
++	opacity: 0.5;
++	pointer-events: none;
++}
++
++.error {
++	color: $red;
++	width: 100%;
++	box-sizing: border-box;
++	font-size: $font_size_small;
++}
++
++a {
++	color: $accent-2;
++	text-decoration: none;
++}
++
++.button-row {
++	display: flex;
++	flex-wrap: wrap;
++	gap: 8px;
++}
++
++.button-row>button {
++	margin-right: 0;
++}
++
++.server-settings-container {
++	display: grid;
++	grid-gap: 1.2rem 1.6rem;
++	margin-bottom: 1rem;
++}
++
++.server-settings-group {
++	margin: 1rem 0;
++}
++
++.server-settings-container.two-columns {
++	grid-template-columns: 1fr 1fr;
++}
++
++.server-settings-container.three-columns {
++	grid-template-columns: 1fr 1fr 1fr;
++}
++
++.server-settings-container.four-columns {
++	grid-template-columns: 1fr 1fr 1fr 1fr;
++}
++
++.server-settings-container.one-two-columns {
++	grid-template-columns: 1fr 2fr;
++}
++
++.server-settings-container.one-three-columns {
++	grid-template-columns: 1fr 3fr;
++}
++
++table {
++	border-collapse: collapse;
++
++	th {
++		text-align: left;
++		color: $muted;
++		font-size: 12px;
++		text-transform: uppercase;
++		letter-spacing: 1px;
++		padding: 8px;
++		border-bottom: 1px solid $line-strong;
++	}
++
++	td {
++		padding: 8px;
++		border-bottom: 1px solid $line;
++	}
++}
++
++.sort {
++	display: flex;
++	justify-content: flex-end;
++
++	label {
++		display: flex;
++		align-items: center;
++		gap: 8px;
++		width: auto;
++	}
++}
++
++@media (max-width: 700px) {
++	.main {
++		margin: 0;
++		border-radius: 0;
++		padding: 16px;
++	}
++
++	.topbar {
++		margin: -16px -16px 20px -16px;
++		border-radius: 0;
++
++		&::before {
++			border-radius: 0;
++		}
++	}
++
++	.main .server {
++		flex-direction: column;
++		align-items: stretch;
++
++		.server-buttons {
++			flex-direction: row;
++
++			button {
++				flex: 1;
++			}
++		}
++	}
++
++	.server-settings-container.two-columns,
++	.server-settings-container.three-columns,
++	.server-settings-container.four-columns,
++	.server-settings-container.one-two-columns,
++	.server-settings-container.one-three-columns {
++		grid-template-columns: 1fr;
++	}
++}
+diff -ruN src.orig/pages/server.vue src/pages/server.vue
+--- a/public/src/pages/server.vue	2026-11-18 07:05:43.373978174 +0000
++++ b/public/src/pages/server.vue	2026-11-18 07:08:23.781602509 +0000
+@@ -1,134 +1,172 @@
+-<template>
+-    <layout>
+-        <div class="title">
+-            <h1>{{servername}}</h1>
+-            <div class="menu">
+-                <button class="primary" v-on:click="save" v-if="is_admin && !is_running"><i class="fas fa-save"></i> {{$t("save")}}</button>
+-                <button v-on:click="$router.push('/')" v-if="is_admin"><i class="fas fa-ban"></i> {{$t("cancel")}}</button>
+-                <button class="primary" v-on:click="$router.push('/')" v-if="!is_admin"><i class="fas fa-arrow-left"></i> {{$t("back")}}</button>
+-            </div>
+-        </div>
+-        <div class="tabs">
+-            <div v-bind:class="{tab: true, 'tab-active': activeTab === 0}" v-on:click="activeTab = 0">{{$t("server_config")}}</div>
+-        </div>
+-        <div v-show="activeTab === 0">
+-            <field :label="$t('servername_label')" v-model="servername"></field>
+-            <accweb ref="accweb"></accweb>
+-            <basic ref="basic"></basic>
+-            <settings ref="settings"></settings>
+-            <event ref="event"></event>
+-            <eventrules ref="eventrules"></eventrules>
+-            <entrylist ref="entrylist"></entrylist>
+-			<bop ref="bop"></bop>
+-			<assistrules ref="assistrules"></assistrules>
+-        </div>
+-    </layout>
+-</template>
+-
+-<script>
+-import axios from "axios";
+-import {layout, end, accweb, basic, settings, event, eventrules, entrylist, bop, assistrules, field} from "../components";
+-
+-export default {
+-    components: {layout, end, accweb, basic, settings, event, eventrules, entrylist, bop, assistrules, field},
+-    data() {
+-        return {
+-            activeTab: 0,
+-            id: "",
+-            servername: "Server name (by accweb)",
+-            configurationJson: null,
+-            settingsJson: null,
+-            eventJson: null,
+-            eventRulesJson: null,
+-            entrylistJson: null,
+-            bopJson: null,
+-            assistRulesJson: null,
+-            is_running: false
+-        };
+-    },
+-    mounted() {
+-        this.id = this.$route.query.id;
+-
+-        if(this.id) {
+-            this.loadServer();
+-        }
+-    },
+-    methods: {
+-        loadServer() {
+-            axios.get("/api/instance/"+this.id)
+-            .then(r => {
+-                let settings = r.data.acc.settings;
+-                settings.passwordIsEmpty = r.data.accExtraSettings.passwordIsEmpty
+-                settings.adminPasswordIsEmpty = r.data.accExtraSettings.adminPasswordIsEmpty
+-                settings.spectatorPasswordIsEmpty = r.data.accExtraSettings.spectatorPasswordIsEmpty
+-
+-                this.is_running = r.data.is_running;
+-                this.servername = r.data.acc.settings.serverName;
+-                this.$refs.accweb.setData(r.data.accWeb)
+-                this.$refs.basic.setData(r.data.acc.configuration);
+-                this.$refs.settings.setData(r.data.acc.settings);
+-                this.$refs.event.setData(r.data.acc.event);
+-                this.$refs.eventrules.setData(r.data.acc.eventRules);
+-                this.$refs.entrylist.setData(r.data.acc.entrylist);
+-                this.$refs.bop.setData(r.data.acc.bop);
+-                this.$refs.assistrules.setData(r.data.acc.assistRules);
+-            });
+-        },
+-        save() {
+-            let accWeb = this.$refs.accweb.getData();
+-            let configuration = this.$refs.basic.getData();
+-            let settings = this.$refs.settings.getData();
+-            let event = this.$refs.event.getData();
+-            let eventRules = this.$refs.eventrules.getData();
+-            let entrylist = this.$refs.entrylist.getData();
+-            let bop = this.$refs.bop.getData();
+-            let assistrules = this.$refs.assistrules.getData();
+-            let data = {
+-                accWeb,
+-                acc: {
+-                    configuration,
+-                    settings,
+-                    event,
+-                    eventRules,
+-                    entrylist,
+-                    bop,
+-                    assistrules
+-                },
+-                accExtraSettings: {
+-                    passwordIsEmpty: settings.passwordIsEmpty,
+-                    adminPasswordIsEmpty: settings.adminPasswordIsEmpty,
+-                    spectatorPasswordIsEmpty: settings.spectatorPasswordIsEmpty,
+-                }
+-            };
+-            data.acc.settings.serverName = this.servername;
+-
+-            let url = "/api/instance"
+-
+-            if (this.id) {
+-                url += "/" + this.id
+-            }
+-
+-            axios.post(url, data)
+-            .then(() => {
+-                this.$router.push("/");
+-            })
+-            .catch(e => {
+-                this.$store.commit("toast", this.$t("save_error") + ' ERROR: ' + e.response.data.error);
+-            });
+-        }
+-    }
+-}
+-</script>
+-
+-<i18n>
+-{
+-    "en": {
+-        "save": "Save",
+-        "cancel": "Cancel",
+-        "back": "Back",
+-        "servername_label": "Servername",
+-        "server_config": "Configure server",
+-        "save_error": "Error saving configuration, please check your input."
+-    }
+-}
+-</i18n>
++<template>
++    <layout>
++        <div class="title">
++            <h1>{{servername}}</h1>
++            <div class="menu">
++                <button class="primary" v-on:click="save" v-if="is_admin && !is_running"><i class="fas fa-save"></i> {{$t("save")}}</button>
++                <button class="primary" v-on:click="saveAndRestart" v-if="is_admin && is_running" :disabled="busy"><i class="fas" v-bind:class="busy ? 'fa-spinner fa-spin' : 'fa-redo'"></i> {{$t("save_restart")}}</button>
++                <button v-on:click="$router.push('/')" v-if="is_admin"><i class="fas fa-ban"></i> {{$t("cancel")}}</button>
++                <button class="primary" v-on:click="$router.push('/')" v-if="!is_admin"><i class="fas fa-arrow-left"></i> {{$t("back")}}</button>
++            </div>
++        </div>
++        <div class="running-hint" v-if="is_admin && is_running"><i class="fas fa-info-circle"></i> {{$t("running_hint")}}</div>
++        <div class="tabs">
++            <div v-bind:class="{tab: true, 'tab-active': activeTab === 0}" v-on:click="activeTab = 0">{{$t("server_config")}}</div>
++        </div>
++        <div v-show="activeTab === 0">
++            <field :label="$t('servername_label')" v-model="servername"></field>
++            <accweb ref="accweb"></accweb>
++            <basic ref="basic"></basic>
++            <settings ref="settings"></settings>
++            <event ref="event"></event>
++            <eventrules ref="eventrules"></eventrules>
++            <entrylist ref="entrylist"></entrylist>
++			<bop ref="bop"></bop>
++			<assistrules ref="assistrules"></assistrules>
++        </div>
++    </layout>
++</template>
++
++<script>
++import axios from "axios";
++import {stopAndWait, errorText} from "../util/restart.js";
++import {layout, end, accweb, basic, settings, event, eventrules, entrylist, bop, assistrules, field} from "../components";
++
++export default {
++    components: {layout, end, accweb, basic, settings, event, eventrules, entrylist, bop, assistrules, field},
++    data() {
++        return {
++            activeTab: 0,
++            id: "",
++            servername: "Server name (by accweb)",
++            configurationJson: null,
++            settingsJson: null,
++            eventJson: null,
++            eventRulesJson: null,
++            entrylistJson: null,
++            bopJson: null,
++            assistRulesJson: null,
++            is_running: false,
++            busy: false
++        };
++    },
++    mounted() {
++        this.id = this.$route.query.id;
++
++        if(this.id) {
++            this.loadServer();
++        }
++    },
++    methods: {
++        loadServer() {
++            axios.get("/api/instance/"+this.id)
++            .then(r => {
++                let settings = r.data.acc.settings;
++                settings.passwordIsEmpty = r.data.accExtraSettings.passwordIsEmpty
++                settings.adminPasswordIsEmpty = r.data.accExtraSettings.adminPasswordIsEmpty
++                settings.spectatorPasswordIsEmpty = r.data.accExtraSettings.spectatorPasswordIsEmpty
++
++                this.is_running = r.data.is_running;
++                this.servername = r.data.acc.settings.serverName;
++                this.$refs.accweb.setData(r.data.accWeb)
++                this.$refs.basic.setData(r.data.acc.configuration);
++                this.$refs.settings.setData(r.data.acc.settings);
++                this.$refs.event.setData(r.data.acc.event);
++                this.$refs.eventrules.setData(r.data.acc.eventRules);
++                this.$refs.entrylist.setData(r.data.acc.entrylist);
++                this.$refs.bop.setData(r.data.acc.bop);
++                this.$refs.assistrules.setData(r.data.acc.assistRules);
++            });
++        },
++        saveAndRestart() {
++            if (!window.confirm(this.$t("confirm_save_restart"))) {
++                return;
++            }
++
++            this.busy = true;
++            stopAndWait(this.id)
++            .then(() => this.save(true))
++            .catch(e => {
++                this.busy = false;
++                this.$store.commit("toast", this.$t("save_error") + " ERROR: " + errorText(e));
++            });
++        },
++        save(restart) {
++            let accWeb = this.$refs.accweb.getData();
++            let configuration = this.$refs.basic.getData();
++            let settings = this.$refs.settings.getData();
++            let event = this.$refs.event.getData();
++            let eventRules = this.$refs.eventrules.getData();
++            let entrylist = this.$refs.entrylist.getData();
++            let bop = this.$refs.bop.getData();
++            let assistrules = this.$refs.assistrules.getData();
++            let data = {
++                accWeb,
++                acc: {
++                    configuration,
++                    settings,
++                    event,
++                    eventRules,
++                    entrylist,
++                    bop,
++                    assistrules
++                },
++                accExtraSettings: {
++                    passwordIsEmpty: settings.passwordIsEmpty,
++                    adminPasswordIsEmpty: settings.adminPasswordIsEmpty,
++                    spectatorPasswordIsEmpty: settings.spectatorPasswordIsEmpty,
++                }
++            };
++            data.acc.settings.serverName = this.servername;
++
++            let url = "/api/instance"
++
++            if (this.id) {
++                url += "/" + this.id
++            }
++
++            axios.post(url, data)
++            .then(() => {
++                if (restart === true) {
++                    return axios.post(`/api/instance/${this.id}/start`);
++                }
++            })
++            .then(() => {
++                this.busy = false;
++                this.$router.push("/");
++            })
++            .catch(e => {
++                this.busy = false;
++                this.$store.commit("toast", this.$t("save_error") + ' ERROR: ' + errorText(e));
++            });
++        }
++    }
++}
++</script>
++
++<style>
++.running-hint {
++    margin: 0 0 16px 0;
++    padding: 10px 14px;
++    border-radius: 8px;
++    color: #f5b301;
++    background: rgba(245, 179, 1, 0.08);
++    border: 1px solid rgba(245, 179, 1, 0.3);
++}
++</style>
++
++<i18n>
++{
++    "en": {
++        "save": "Save",
++        "save_restart": "Save & restart",
++        "running_hint": "The server is running. Changes take effect after a restart, \"Save & restart\" does both in one go.",
++        "confirm_save_restart": "Save and restart the server now? Everybody on it gets disconnected.",
++        "cancel": "Cancel",
++        "back": "Back",
++        "servername_label": "Servername",
++        "server_config": "Configure server",
++        "save_error": "Error saving configuration, please check your input."
++    }
++}
++</i18n>
+diff -ruN src.orig/util/restart.js src/util/restart.js
+--- a/public/src/util/restart.js	1970-01-01 00:00:00.000000000 +0000
++++ b/public/src/util/restart.js	2026-11-18 07:08:11.665538826 +0000
+@@ -0,0 +1,34 @@
++import axios from "axios";
++
++// Waits until accweb reports the instance as stopped. Stop only kills the
++// process, the "running" flag clears a moment later.
++export function waitStopped(id, tries = 30) {
++    return new Promise((resolve, reject) => {
++        const check = (left) => {
++            axios.get(`/api/instance/${id}`)
++                .then(r => {
++                    if (!r.data.is_running) {
++                        resolve();
++                    } else if (left <= 0) {
++                        reject(new Error("server did not stop in time"));
++                    } else {
++                        setTimeout(() => check(left - 1), 500);
++                    }
++                })
++                .catch(reject);
++        };
++        check(tries);
++    });
++}
++
++export function stopAndWait(id) {
++    return axios.post(`/api/instance/${id}/stop`).then(() => waitStopped(id));
++}
++
++export function restartServer(id) {
++    return stopAndWait(id).then(() => axios.post(`/api/instance/${id}/start`));
++}
++
++export function errorText(e) {
++    return (e && e.response && e.response.data && e.response.data.error) || (e && e.message) || "";
++}
+--- a/public/xindex.html
++++ b/public/xindex.html
+@@ -11,11 +11,12 @@
+ 	<meta name="description" content="Assetto Corsa Competizione Server Management" />
+ 
+ 	<link rel="shortcut icon" type="image/png" href="static/favicon.png" />
+-	<link rel="stylesheet" type="text/css" href="dist/main.css" />
++	<link rel="preconnect" href="https://fonts.googleapis.com" />
++	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,900&display=swap" />
+ 	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+ 		integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous" />
+ 
+-	<title>Assetto Corsa Competizione Server Management</title>
++	<title>ACC Race Control</title>
+ </head>
+ 
+ <body>

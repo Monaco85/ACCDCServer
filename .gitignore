@@ -1,4 +1,5 @@
-# Von install.ps1 angelegt, gehoert nicht ins Repo
+# Von install.ps1 und install-accweb.ps1 angelegt, gehoert nicht ins Repo
 steamcmd/
 steamapp/
 server/
+accweb/

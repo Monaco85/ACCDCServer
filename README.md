@@ -11,6 +11,9 @@ Fertiges Setup für einen **Assetto Corsa Competizione (ACC) Dedicated Server un
 | `install.ps1` | Holt den Server aus deiner ACC-Installation oder per SteamCMD (Steam-Tool 1430110) und spielt `cfg\` ein |
 | `start.bat` | Startet `server\accServer.exe` |
 | `firewall.ps1` | Öffnet die Ports in der Windows-Firewall (als Administrator) |
+| `install-accweb.ps1` | Optional: Weboberfläche accweb mit Race-Control-Design |
+| `start-accweb.bat` | Startet die Weboberfläche, die dann den Server startet |
+| `accweb-theme\` | Das Design für accweb (fertig gebaut, Quelländerungen in `theme.patch`) |
 | `cfg\configuration.json` | Ports, Verbindungen, Lobby und LAN |
 | `cfg\settings.json` | Servername, Passwörter, Fahrzeugklasse, Slots |
 | `cfg\event.json` | Strecke, Wetter, Sessions |
@@ -26,7 +29,8 @@ Fertiges Setup für einen **Assetto Corsa Competizione (ACC) Dedicated Server un
 - **Keine Inhalte kopieren.** Alle Strecken und Autos bringt das Spiel mit, der Server braucht keinen `content`-Ordner.
 - **Kein Verbinden per IP im Spielmenü.** Spieler finden den Server in der Serverliste (Internet) oder in der LAN-Liste.
 - **Rennen laufen nach Zeit**, nicht nach Runden.
-- Keine eingebaute Weboberfläche (siehe "Optional: accweb").
+- **Schaden lässt sich nicht einstellen.** Der ACC-Server hat dafür keine Option, online fährt man immer mit vollem Schaden. Den Schadensregler gibt es nur im Einzelspielermodus.
+- Weboberfläche nicht eingebaut, aber per Skript nachrüstbar (siehe "Weboberfläche").
 
 ## Voraussetzungen
 
@@ -80,7 +84,7 @@ Kunos rät davon ab, einen öffentlichen Server auf dem eigenen PC zu betreiben:
 
 ### Admin im Spiel
 Im Chat `/admin <adminPassword>`, danach z. B.:
-- `/next`: nächste Session
+- `/next`: beendet die laufende Session sofort und startet die nächste. So beendest du z. B. das Training, sobald alle bereit sind
 - `/restart`: Session neu starten (nicht in der Vorbereitungsphase)
 - `/kick <Startnummer>` oder `/ban <Startnummer>`: anders als bei AC mit der **Startnummer**, nicht dem Namen
 - `/dq <Startnummer>`: sofort disqualifizieren
@@ -123,6 +127,14 @@ In `cfg\event.json` steht unter `sessions` eine Liste. Jede Session hat:
 
 Wetter: `ambientTemp` in °C, `cloudLevel` und `rain` von 0.0 bis 1.0, `weatherRandomness` 0 = festes Wetter, 1 bis 4 realistisch, 5 bis 7 wechselhaft.
 
+Training, bis alle bereit sind, und dann direkt das Rennen: lege nur zwei Sessions an, ein langes Training und das Rennen. Im Spiel startet dann ein einziges `/next` das Rennen.
+```json
+"sessions": [
+    { "hourOfDay": 10, "dayOfWeekend": 2, "timeMultiplier": 1, "sessionType": "P", "sessionDurationMinutes": 120 },
+    { "hourOfDay": 14, "dayOfWeekend": 3, "timeMultiplier": 1, "sessionType": "R", "sessionDurationMinutes": 20 }
+]
+```
+
 `preRaceWaitingTimeSeconds` (mindestens 30) ist die Vorbereitungszeit vor dem Rennen. `sessionOverTimeSeconds` ist die Zeit nach Ablauf der Uhr, die Fahrer haben, um ihre Runde zu beenden. Für lange Strecken wie Spa oder Silverstone mehr als die voreingestellten 120 Sekunden nehmen.
 
 ### Boxenregeln und Fahrhilfen
@@ -132,14 +144,38 @@ Wetter: `ambientTemp` in °C, `cloudLevel` und `rain` von 0.0 bis 1.0, `weatherR
 ### Ergebnisse
 Mit `dumpLeaderboards` auf `1` schreibt der Server nach jeder Session eine JSON-Datei nach `server\results\`, z. B. `251103_193009_R.json` mit Rundenzeiten und Strafen.
 
-### Optional: accweb
-Eine Weboberfläche zum Verwalten, Starten und Stoppen gibt es mit [accweb](https://github.com/assetto-corsa-web/accweb). Die ist hier nicht eingebaut. Wenn du sie nutzt, pflegt accweb die Konfiguration selbst, die Dateien aus `cfg\` brauchst du dann nicht.
+## Weboberfläche (optional)
+
+Mit [accweb](https://github.com/assetto-corsa-web/accweb) steuerst du den Server im Browser, auch vom Handy aus dem Heimnetz. Das Skript installiert accweb mit einem eigenen Race-Control-Design und zwei Ergänzungen:
+- **Restart** auf der Serverkarte: stoppt und startet den Server mit einem Klick
+- **Save & restart** in den Einstellungen: speichert Änderungen und startet den Server neu. accweb selbst lässt Speichern nur bei gestopptem Server zu
+
+Änderungen ohne Neustart übernehmen geht nicht: Der ACC-Server liest seine Konfiguration nur beim Start.
+
+### Einrichten
+1. Erst `install.ps1` ausführen (siehe oben), dann:
+   ```powershell
+   PowerShell -ExecutionPolicy Bypass -File .\install-accweb.ps1 -AdminPassword deinPasswort
+   ```
+   Ohne `-AdminPassword` erzeugt das Skript ein Passwort und zeigt es an. Es steht auch in `accweb\config.yml`. Mit `-Port 8090` nimmst du einen anderen Port als 8080.
+2. `firewall.ps1` erneut als Administrator ausführen. Es gibt den Port der Weboberfläche nur für das eigene Netz frei.
+3. `start-accweb.bat` starten und im Browser `http://localhost:8080` öffnen, vom Handy `http://IP-des-PCs:8080`.
+
+Beim ersten Lauf übernimmt das Skript deine Einstellungen aus `cfg\` als Server "acc1" und stellt ihn auf Autostart: Startest du accweb, startet der ACC-Server mit.
+
+### Was du wissen solltest
+- **Entweder `start-accweb.bat` oder `start.bat`**, nicht beides: beide Server würden dieselben Ports belegen.
+- Mit accweb pflegst du die Einstellungen im Browser. `cfg\` dient nur noch für die erste Übernahme, spätere Änderungen dort übernimmt accweb nicht.
+- accweb hat drei Zugänge: Admin (alles), Moderator (starten, stoppen) und Nur-Lesen. Die Passwörter stehen in `accweb\config.yml`.
+- Die Oberfläche ist auf Englisch.
+- Gib den Port der Weboberfläche **nicht** im Router frei. accweb läuft hier ohne HTTPS, Passwörter gingen unverschlüsselt durchs Internet.
+- Das Design ist für accweb 1.27.0 gebaut, das Skript lädt genau diese Version. Ein erneuter Lauf erneuert accweb und das Design, lässt aber Passwörter und Servereinstellungen in Ruhe.
 
 ## Updates
 - **Variante A:** Steam aktualisiert ACC wie gewohnt. Danach `install.ps1` erneut ausführen.
 - **Variante B:** `install.ps1 -SteamUser deinSteamName` erneut ausführen. SteamCMD aktualisiert den Server (`validate`).
 
-Den Server vorher beenden, sonst lässt sich `accServer.exe` nicht überschreiben.
+Den Server vorher beenden, sonst lässt sich `accServer.exe` nicht überschreiben. Mit accweb übernimmt die Weboberfläche die neue `accServer.exe` beim nächsten Start des Servers selbst.
 **Achtung:** Das Skript überschreibt die Dateien in `server\cfg\`. Pflege die Konfiguration deshalb in `cfg\`.
 
 ## Fehlersuche
@@ -155,4 +191,6 @@ Den Server vorher beenden, sonst lässt sich `accServer.exe` nicht überschreibe
 | Nicht in der LAN-Liste | `lanDiscovery` auf `1`, `firewall.ps1` ausführen, Netzwerkprofil "Privat" verwenden |
 | In der Serverliste ohne Ping | UDP-Port (9231) nicht erreichbar: Router-Weiterleitung und Firewall prüfen |
 | Aus dem Internet nicht erreichbar | Portfreigabe im Router. Bei CGNAT oder DS-Lite ist keine direkte Erreichbarkeit möglich (VPN oder Tunnel nötig) |
+| Weboberfläche: "Error starting server" | Läuft noch ein Server über `start.bat`? Dann belegt er die Ports. Sonst unter "View logs" nachsehen |
+| Weboberfläche vom Handy nicht erreichbar | `firewall.ps1` nach `install-accweb.ps1` erneut als Administrator ausführen. Handy muss im selben Netz sein |
 | Skript meldet "Ausführung deaktiviert" | Mit `-ExecutionPolicy Bypass` starten wie oben gezeigt |
