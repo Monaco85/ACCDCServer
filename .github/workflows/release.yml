@@ -1,0 +1,32 @@
+# Baut bei einem Tag wie v1.0.0 ein ZIP und legt damit ein GitHub-Release an.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Dateien liegen im ZIP direkt oben, damit beim Entpacken kein doppelter Ordner entsteht.
+      # .gitattributes sorgt beim Checkout fuer Windows-Zeilenenden in .ps1, .bat und .json.
+      - name: ZIP bauen
+        run: |
+          name="ACCDCServer-${GITHUB_REF_NAME}"
+          zip -r -X "${name}.zip" . -x ".git/*" ".github/*" ".gitignore" ".gitattributes"
+          unzip -l "${name}.zip"
+
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "ACCDCServer-${GITHUB_REF_NAME}.zip" \
+            --title "ACCDCServer $GITHUB_REF_NAME" \
+            --notes-file .github/release-notes.md
