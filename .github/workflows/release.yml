@@ -1,7 +1,15 @@
-# Baut bei einem Tag wie v1.0.0 ein ZIP und legt damit ein GitHub-Release an.
+# Baut ein ZIP und legt damit ein GitHub-Release an.
+# Start: auf GitHub unter Actions -> Release -> "Run workflow", Version eingeben (z. B. v1.0.1),
+# oder automatisch beim Push eines Tags wie v1.0.0.
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versionsnummer, z. B. v1.0.0"
+        required: true
+        default: "v1.0.0"
   push:
     tags:
       - "v*"
@@ -12,6 +20,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.event.inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,7 +29,7 @@ jobs:
       # .gitattributes sorgt beim Checkout fuer Windows-Zeilenenden in .ps1, .bat und .json.
       - name: ZIP bauen
         run: |
-          name="ACCDCServer-${GITHUB_REF_NAME}"
+          name="ACCDCServer-${VERSION}"
           zip -r -X "${name}.zip" . -x ".git/*" ".github/*" ".gitignore" ".gitattributes"
           unzip -l "${name}.zip"
 
@@ -27,6 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "ACCDCServer-${GITHUB_REF_NAME}.zip" \
-            --title "ACCDCServer $GITHUB_REF_NAME" \
+          gh release create "$VERSION" "ACCDCServer-${VERSION}.zip" \
+            --target "$GITHUB_SHA" \
+            --title "ACCDCServer $VERSION" \
             --notes-file .github/release-notes.md
