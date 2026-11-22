@@ -164,6 +164,7 @@ Mit [accweb](https://github.com/assetto-corsa-web/accweb) steuerst du den Server
 Beim ersten Lauf übernimmt das Skript deine Einstellungen aus `cfg\` als Server "acc1" und stellt ihn auf Autostart: Startest du accweb, startet der ACC-Server mit.
 
 ### Was du wissen solltest
+- **Meldungen von accweb** landen in `accweb\accweb.log`, nicht im Fenster. accweb schreibt viel, z. B. "driver not found in GetDriver" für jede Verbindung, die sich nie als Fahrer anmeldet. Das ist harmlos. Beim nächsten Start wird das alte Log zu `accweb.old.log`.
 - **Entweder `start-accweb.bat` oder `start.bat`**, nicht beides: beide Server würden dieselben Ports belegen.
 - Mit accweb pflegst du die Einstellungen im Browser. `cfg\` dient nur noch für die erste Übernahme, spätere Änderungen dort übernimmt accweb nicht.
 - accweb hat drei Zugänge: Admin (alles), Moderator (starten, stoppen) und Nur-Lesen. Die Passwörter stehen in `accweb\config.yml`.
