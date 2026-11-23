@@ -34,10 +34,10 @@ function Find-AccServer([string[]]$dirs) {
 # Alle ACC-Ordner in allen Steam-Bibliotheken (Spiel und Dedicated-Server-Tool).
 function Get-AccFolders {
     $steam = (Get-ItemProperty "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).SteamPath
-    if (-not $steam) { return @() }
-    $libs = @($steam -replace "/", "\")
-    $vdf  = Join-Path $steam "steamapps\libraryfolders.vdf"
-    if (Test-Path $vdf) {
+    $libs  = @("${env:ProgramFiles(x86)}\Steam", "$env:ProgramFiles\Steam")
+    if ($steam) { $libs += $steam -replace "/", "\" }
+    $vdf   = if ($steam) { Join-Path $steam "steamapps\libraryfolders.vdf" } else { "" }
+    if ($vdf -and (Test-Path $vdf)) {
         $libs += Select-String -Path $vdf -Pattern '"path"\s+"([^"]+)"' |
             ForEach-Object { $_.Matches[0].Groups[1].Value -replace "\\\\", "\" }
     }
@@ -59,8 +59,13 @@ if ($SteamUser) {
     $source = Find-AccServer @($download)
     if (-not $source) { throw "SteamCMD hat keinen Server geladen. Besitzt das Konto '$SteamUser' ACC? Meldung im SteamCMD-Fenster pruefen." }
 } else {
-    $source = Find-AccServer @(Get-AccFolders)
-    if (-not $source) { throw "Keine ACC-Installation mit accServer.exe gefunden. ACC ueber Steam installieren oder install.ps1 -SteamUser <Name> verwenden." }
+    # Ein frueherer SteamCMD-Download in diesem Ordner zaehlt auch
+    $source = Find-AccServer (@(Get-AccFolders) + @(Join-Path $root "steamapp"))
+    if (-not $source) {
+        throw ("Auf diesem PC ist kein ACC installiert (keine accServer.exe gefunden).`n" +
+               "Server per Steam-Konto laden:  .\install.ps1 -SteamUser deinSteamName`n" +
+               "Hast du schon einen Server-Ordner? Dann dort weiterarbeiten statt neu zu installieren.")
+    }
 }
 
 Write-Host "Server-Dateien aus: $source"
@@ -73,4 +78,4 @@ New-Item -ItemType Directory -Force "$server\cfg", "$server\results" | Out-Null
 foreach ($c in $configs) {
     [IO.File]::WriteAllText((Join-Path "$server\cfg" $c.Name), $c.Text, [Text.Encoding]::Unicode)
 }
-Write-Host "Fertig. Server mit start.bat starten."
+Write-Host "Fertig. Server mit ACCDCServer.exe (oder start.bat) starten."
