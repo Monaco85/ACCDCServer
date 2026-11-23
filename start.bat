@@ -13,6 +13,13 @@ if not errorlevel 1 (
     pause
     exit /b 1
 )
+rem Ist accweb installiert, gelten dessen Einstellungen (Server acc1) auch hier.
+if exist "%~dp0accweb\config\acc1\event.json" (
+    echo Uebernehme die Einstellungen aus accweb ^(accweb\config\acc1^).
+    for %%f in (configuration settings event eventRules entrylist bop assistRules) do (
+        if exist "%~dp0accweb\config\acc1\%%f.json" copy /y "%~dp0accweb\config\acc1\%%f.json" "%~dp0server\cfg\" >nul
+    )
+)
 cd /d "%~dp0server"
 accServer.exe
 pause

@@ -166,7 +166,13 @@ Beim ersten Lauf übernimmt das Skript deine Einstellungen aus `cfg\` als Server
 ### Was du wissen solltest
 - **Meldungen von accweb** landen in `accweb\accweb.log`, nicht im Fenster. accweb schreibt viel, z. B. "driver not found in GetDriver" für jede Verbindung, die sich nie als Fahrer anmeldet. Das ist harmlos. Beim nächsten Start wird das alte Log zu `accweb.old.log`.
 - **Entweder `start-accweb.bat` oder `start.bat`**, nicht beides: beide Server würden dieselben Ports belegen.
-- Mit accweb pflegst du die Einstellungen im Browser. `cfg\` dient nur noch für die erste Übernahme, spätere Änderungen dort übernimmt accweb nicht.
+- **Welche Einstellungen gelten:** Mit accweb pflegst du alles im Browser, gespeichert wird in `accweb\config\acc1\`. `start.bat` übernimmt diese Einstellungen vor jedem Start nach `server\cfg\`, beide Startwege nutzen also dasselbe. `cfg\` im Hauptverzeichnis ist dann nur noch die Vorlage für die erste Übernahme, Änderungen dort wirken nicht mehr.
+
+  | Ordner | Zweck |
+  |---|---|
+  | `cfg\` | Vorlage (UTF-8). Ohne accweb die Stelle zum Bearbeiten, danach `install.ps1` |
+  | `server\cfg\` | Was `start.bat` startet. Nicht von Hand bearbeiten, wird überschrieben |
+  | `accweb\config\acc1\` | Einstellungen aus der Weboberfläche. Mit accweb die einzige Stelle, die zählt |
 - accweb hat drei Zugänge: Admin (alles), Moderator (starten, stoppen) und Nur-Lesen. Die Passwörter stehen in `accweb\config.yml`.
 - Die Oberfläche ist auf Englisch.
 - Gib den Port der Weboberfläche **nicht** im Router frei. accweb läuft hier ohne HTTPS, Passwörter gingen unverschlüsselt durchs Internet.
