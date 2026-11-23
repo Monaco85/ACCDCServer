@@ -9,7 +9,8 @@ Fertiges Setup für einen **Assetto Corsa Competizione (ACC) Dedicated Server un
 | Datei | Zweck |
 |---|---|
 | `install.ps1` | Holt den Server aus deiner ACC-Installation oder per SteamCMD (Steam-Tool 1430110) und spielt `cfg\` ein |
-| `start.bat` | Startet `server\accServer.exe` |
+| `ACCDCServer.exe` | **Startet alles mit einem Doppelklick** (nur im Release-ZIP, Quellcode in `launcher\`) |
+| `start.bat` | Startet nur `server\accServer.exe`, ohne Weboberfläche |
 | `firewall.ps1` | Öffnet die Ports in der Windows-Firewall (als Administrator) |
 | `install-accweb.ps1` | Optional: Weboberfläche accweb mit Race-Control-Design |
 | `start-accweb.bat` | Startet die Weboberfläche, die dann den Server startet |
@@ -68,7 +69,17 @@ Fertiges Setup für einen **Assetto Corsa Competizione (ACC) Dedicated Server un
 
 ## Starten
 
-Doppelklick auf `start.bat`. Im Fenster erscheint das Serverlog, eine Kopie liegt in `server\log\`. Zum Beenden das Fenster schließen oder `Strg+C`.
+**Doppelklick auf `ACCDCServer.exe`.** Das Programm:
+- beendet auf Nachfrage einen Server oder accweb, die noch laufen
+- startet mit installierter Weboberfläche accweb, das den ACC-Server mitstartet, und öffnet den Browser
+- startet ohne Weboberfläche den ACC-Server direkt
+- beendet alles, wenn du sein Fenster schließt oder `Strg+C` drückst. Es bleibt kein Server im Hintergrund hängen
+
+Beim ersten Start warnt Windows eventuell ("Der Computer wurde durch Windows geschützt"), weil das Programm nicht signiert ist. Dann "Weitere Informationen" und "Trotzdem ausführen" wählen.
+
+Die Startdateien funktionieren weiterhin: `start.bat` startet nur den Server, `start-accweb.bat` nur die Weboberfläche.
+
+Mit `start.bat`: Doppelklick auf `start.bat`. Im Fenster erscheint das Serverlog, eine Kopie liegt in `server\log\`. Zum Beenden das Fenster schließen oder `Strg+C`.
 
 Wenn der Server sofort stoppt, steht der Grund im Log. Meist ist es ein falscher Streckenname oder ein unpassender Wert. Bei einem falschen Streckennamen listet das Log alle gültigen Namen auf.
 
@@ -159,13 +170,13 @@ Mit [accweb](https://github.com/assetto-corsa-web/accweb) steuerst du den Server
    ```
    Ohne `-AdminPassword` erzeugt das Skript ein Passwort und zeigt es an. Es steht auch in `accweb\config.yml`. Mit `-Port 8090` nimmst du einen anderen Port als 8080.
 2. `firewall.ps1` erneut als Administrator ausführen. Es gibt den Port der Weboberfläche nur für das eigene Netz frei.
-3. `start-accweb.bat` starten und im Browser `http://localhost:8080` öffnen, vom Handy `http://IP-des-PCs:8080`.
+3. `ACCDCServer.exe` starten. Der Browser öffnet sich mit `http://localhost:8080`, vom Handy erreichst du die Oberfläche unter `http://IP-des-PCs:8080`.
 
 Beim ersten Lauf übernimmt das Skript deine Einstellungen aus `cfg\` als Server "acc1" und stellt ihn auf Autostart: Startest du accweb, startet der ACC-Server mit.
 
 ### Was du wissen solltest
 - **Meldungen von accweb** landen in `accweb\accweb.log`, nicht im Fenster. accweb schreibt viel, z. B. "driver not found in GetDriver" für jede Verbindung, die sich nie als Fahrer anmeldet. Das ist harmlos. Beim nächsten Start wird das alte Log zu `accweb.old.log`.
-- **Entweder `start-accweb.bat` oder `start.bat`**, nicht beides: beide Server würden dieselben Ports belegen.
+- **Nur ein Startweg gleichzeitig:** `ACCDCServer.exe`, `start-accweb.bat` oder `start.bat`. Sonst wollen zwei Server dieselben Ports.
 - **Welche Einstellungen gelten:** Mit accweb pflegst du alles im Browser, gespeichert wird in `accweb\config\acc1\`. `start.bat` übernimmt diese Einstellungen vor jedem Start nach `server\cfg\`, beide Startwege nutzen also dasselbe. `cfg\` im Hauptverzeichnis ist dann nur noch die Vorlage für die erste Übernahme, Änderungen dort wirken nicht mehr.
 
   | Ordner | Zweck |

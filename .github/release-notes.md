@@ -8,13 +8,15 @@ Fertiges Setup für einen Assetto Corsa Competizione Dedicated Server unter Wind
    PowerShell -ExecutionPolicy Bypass -File .\install.ps1
    ```
    Auf einem PC ohne ACC: `.\install.ps1 -SteamUser deinSteamName`
-4. `firewall.ps1` als Administrator ausführen, dann `start.bat` starten.
+4. `firewall.ps1` als Administrator ausführen, dann **`ACCDCServer.exe`** doppelklicken.
 
 Optional Weboberfläche mit Race-Control-Design, Restart und "Save & restart":
 ```powershell
 PowerShell -ExecutionPolicy Bypass -File .\install-accweb.ps1 -AdminPassword deinPasswort
 ```
-Danach `firewall.ps1` erneut als Administrator, dann `start-accweb.bat` und `http://localhost:8080`.
+Danach `firewall.ps1` erneut als Administrator. `ACCDCServer.exe` startet dann accweb samt Server und öffnet den Browser.
+
+**ACCDCServer.exe** startet alles mit einem Doppelklick und beendet alles, wenn du das Fenster schließt. Beim ersten Start warnt Windows eventuell ("Der Computer wurde durch Windows geschützt"), weil das Programm nicht signiert ist: "Weitere Informationen" → "Trotzdem ausführen".
 
 Alle Details stehen in der `README.md` im ZIP.
 

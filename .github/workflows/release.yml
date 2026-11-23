@@ -25,12 +25,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: launcher/go.mod
+
+      # Startprogramm ACCDCServer.exe fuer Windows bauen
+      - name: ACCDCServer.exe bauen
+        working-directory: launcher
+        run: GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ../ACCDCServer.exe .
+
       # Dateien liegen im ZIP direkt oben, damit beim Entpacken kein doppelter Ordner entsteht.
       # .gitattributes sorgt beim Checkout fuer Windows-Zeilenenden in .ps1, .bat und .json.
       - name: ZIP bauen
         run: |
           name="ACCDCServer-${VERSION}"
-          zip -r -X "${name}.zip" . -x ".git/*" ".github/*" ".gitignore" ".gitattributes"
+          zip -r -X "${name}.zip" . -x ".git/*" ".github/*" ".gitignore" ".gitattributes" "launcher/*"
           unzip -l "${name}.zip"
 
       - name: Release anlegen
