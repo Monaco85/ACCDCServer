@@ -192,6 +192,7 @@ Den Server vorher beenden, sonst lässt sich `accServer.exe` nicht überschreibe
 | Nicht in der LAN-Liste | `lanDiscovery` auf `1`, `firewall.ps1` ausführen, Netzwerkprofil "Privat" verwenden |
 | In der Serverliste ohne Ping | UDP-Port (9231) nicht erreichbar: Router-Weiterleitung und Firewall prüfen |
 | Aus dem Internet nicht erreichbar | Portfreigabe im Router. Bei CGNAT oder DS-Lite ist keine direkte Erreichbarkeit möglich (VPN oder Tunnel nötig) |
+| Weboberfläche zeigt eine andere Strecke als im Spiel | Es lief noch ein zweiter Server über `start.bat` mit der alten Konfiguration. Im Task-Manager nach `accServer.exe` suchen, alle beenden, dann nur über accweb starten. Die Startdateien verweigern ab v1.0.2 den Start, wenn schon ein Server läuft |
 | Weboberfläche: "Error starting server" | Läuft noch ein Server über `start.bat`? Dann belegt er die Ports. Sonst unter "View logs" nachsehen |
 | Weboberfläche vom Handy nicht erreichbar | `firewall.ps1` nach `install-accweb.ps1` erneut als Administrator ausführen. Handy muss im selben Netz sein |
 | Skript meldet "Ausführung deaktiviert" | Mit `-ExecutionPolicy Bypass` starten wie oben gezeigt |
